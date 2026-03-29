@@ -1,11 +1,11 @@
 ---
 name: memory-orchestrator
-description: Multi-layer memory system for OpenClaw agents. Orchestrates LCM (lossless context), Mem0 (semantic recall), QMD (full-text search), task files, and daily logs into a coherent five-layer memory architecture. Use when setting up a new OpenClaw instance's memory system, when the user asks about memory/context management, or when configuring plugins for persistent agent memory. Covers plugin installation, config, cron jobs, file conventions, and cross-platform (WhatsApp/webchat) context continuity.
+description: Multi-layer memory system for OpenClaw agents with automatic Dream consolidation. Orchestrates LCM (lossless context), Mem0 (semantic recall), QMD (full-text search), task files, and daily logs into a coherent five-layer memory architecture with periodic self-maintenance. Use when setting up a new OpenClaw instance's memory system, when the user asks about memory/context management, or when configuring plugins for persistent agent memory. Covers plugin installation, config, cron jobs, Dream consolidation, file conventions, and cross-platform (WhatsApp/webchat) context continuity.
 ---
 
 # Memory Orchestrator
 
-Five-layer memory system that gives OpenClaw agents persistent, cross-session, cross-platform memory.
+Five-layer memory system that gives OpenClaw agents persistent, cross-session, cross-platform memory — with automatic Dream consolidation to prevent memory bloat.
 
 ## Architecture Overview
 
@@ -171,9 +171,59 @@ For setups with multiple chat surfaces (e.g., WhatsApp + webchat):
 
 See `references/cross-platform.md` for the full WhatsApp + webchat cooperation model.
 
+## Dream Consolidation (v6)
+
+Without periodic maintenance, memory systems degrade:
+- Mem0 fills with noise (gateway status, timestamps, exec logs) → recall quality drops
+- MEMORY.md accumulates stale entries → bloated context on every session start
+- Task files pile up after completion → wastes scanning time
+- Daily logs from months ago never get reviewed → dead weight
+
+### How Dream Works
+
+Inspired by Claude Code's Auto Dream, the Dream cycle runs weekly (or on-demand) with six steps:
+
+1. **Orientation** — Read MEMORY.md, assess current state
+2. **Gather Signal** — Scan recent daily logs + Mem0 for high-value memories
+3. **Consolidation** — Update statuses, remove completed items, compress old reports, enforce absolute dates
+4. **Mem0 Pruning** — Search and delete noise memories matching known patterns
+5. **Task File Review** — Archive completed tasks to `memory/tasks/archive/`
+6. **Index** — Ensure MEMORY.md stays under target line count, update timestamp
+
+### Setup Dream Cron
+
+See `references/cron-templates.md` for the ready-to-use Dream cron job definition.
+
+### Mem0 Write Filtering Rules
+
+Add these rules to your AGENTS.md to prevent noise from entering Mem0:
+
+```markdown
+### 🚫 Mem0 Write Filtering (hard rules)
+
+DO NOT write to Mem0:
+- Gateway connect/disconnect status (WhatsApp, WeChat, etc.)
+- Current timestamps ("current time is...")
+- Exec completed/failed status (belongs in session logs)
+- Message IDs and conversation metadata
+- Heartbeat check records
+- Scheduled cleanup task triggers
+
+DO write to Mem0:
+- User preferences and behavior patterns
+- Architecture decisions and technical choices
+- Project status changes (new/completed/abandoned)
+- Lessons learned and post-mortems
+- Contact info and account details
+```
+
+### Absolute Date Rule
+
+All memory files (MEMORY.md, task files, Mem0 entries) must use `YYYY-MM-DD` format. Never write "today", "yesterday", or "last week" — these become meaningless after the session ends.
+
 ## Maintenance
 
-During heartbeats (every few days):
+The Dream cron handles most maintenance automatically. For manual maintenance during heartbeats:
 1. Review recent `memory/YYYY-MM-DD.md` files
 2. Distill significant events into MEMORY.md
 3. Check `memory/tasks/` for stale ACTIVE tasks (>3 days no update)

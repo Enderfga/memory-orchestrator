@@ -70,6 +70,31 @@ Refreshes QMD full-text search index over workspace files.
 }
 ```
 
+## Memory Dream — Weekly Consolidation (Sunday 04:00)
+
+Automated six-step memory maintenance: prunes Mem0 noise, compresses MEMORY.md, archives completed tasks.
+
+```json
+{
+  "name": "Memory Dream (Weekly Consolidation)",
+  "schedule": {
+    "kind": "cron",
+    "expr": "0 4 * * 0",
+    "tz": "Asia/Singapore"
+  },
+  "payload": {
+    "kind": "agentTurn",
+    "message": "Execute weekly memory dream consolidation. Steps:\n1. ORIENTATION: Read MEMORY.md, count lines\n2. GATHER SIGNAL: Read last 7 days of daily logs (memory/YYYY-MM-DD.md). Use memory_search for recent high-value memories\n3. CONSOLIDATION: Update MEMORY.md status, remove completed items, convert relative dates to YYYY-MM-DD, compress weekly reports older than 2 weeks to one-line summaries, keep under 120 lines\n4. MEM0 PRUNING: Search and delete noise memories (gateway status, timestamps, exec status, message metadata) via memory_forget\n5. TASK FILES: Check memory/tasks/*.md, move completed ones to archive/\n6. Update 上次整理 date. Output brief summary of changes.",
+    "model": "anthropic/claude-haiku-4-5",
+    "timeoutSeconds": 300
+  },
+  "sessionTarget": "isolated",
+  "delivery": { "mode": "none" }
+}
+```
+
+**Why Sunday 04:00?** Minimal session activity, cheap model keeps cost near zero (~$0.01/run), runs before the Weekly Compound (Sunday 22:00) so MEMORY.md is clean before the compound distills new content into it.
+
 ## Notes
 
 - **Timezone**: Adjust `tz` to your local timezone

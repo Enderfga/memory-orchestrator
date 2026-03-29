@@ -1,6 +1,6 @@
 # 🧠 Memory Orchestrator
 
-A five-layer memory system for [OpenClaw](https://github.com/openclaw/openclaw) agents — persistent, cross-session, cross-platform context that never forgets.
+A five-layer memory system for [OpenClaw](https://github.com/openclaw/openclaw) agents — persistent, cross-session, cross-platform context that never forgets, with automatic **Dream consolidation** to prevent memory bloat.
 
 ## Problem
 
@@ -144,6 +144,76 @@ The task file workflow bridges platforms:
 
 See [`references/cross-platform.md`](references/cross-platform.md) for details.
 
+## Dream Consolidation (v6)
+
+Without periodic maintenance, memory systems degrade fast:
+- **Mem0** fills with noise (gateway status logs, timestamps, exec results) → recall quality tanks
+- **MEMORY.md** accumulates stale entries → bloated context every session
+- **Task files** pile up after completion → dead weight
+
+Dream consolidation runs weekly (via cron) and performs six automated steps:
+
+```
+┌─────────────────────────────────────────────────┐
+│              Weekly Dream Cycle                  │
+│                                                  │
+│  1. Orientation    → Read MEMORY.md state        │
+│  2. Gather Signal  → Scan week's daily logs      │
+│  3. Consolidation  → Update, prune, compress     │
+│  4. Mem0 Pruning   → Delete noise memories       │
+│  5. Task Review    → Archive completed tasks     │
+│  6. Index          → Keep MEMORY.md < 120 lines  │
+└─────────────────────────────────────────────────┘
+```
+
+### Setup
+
+```bash
+# Add the Dream cron job (runs Sunday 04:00)
+openclaw cron add \
+  --name "Memory Dream (Weekly Consolidation)" \
+  --cron "0 4 * * 0" \
+  --tz "Asia/Singapore" \
+  --session isolated \
+  --model "anthropic/claude-haiku-4-5" \
+  --timeout-seconds 300 \
+  --no-deliver \
+  --message 'Execute weekly memory dream consolidation. Steps:
+1. ORIENTATION: Read MEMORY.md, count lines
+2. GATHER SIGNAL: Read last 7 days of daily logs. Search Mem0 for recent memories
+3. CONSOLIDATION: Update status, remove completed items, convert relative dates to YYYY-MM-DD, compress old reports, keep under 120 lines
+4. MEM0 PRUNING: Search and delete noise (gateway status, timestamps, exec status) via memory_forget
+5. TASK FILES: Move completed tasks to archive/
+6. Update timestamp. Output brief summary.'
+```
+
+### Mem0 Noise Prevention
+
+Add write-filtering rules to your `AGENTS.md` to stop noise at the source:
+
+**Never write to Mem0:**
+- Gateway connect/disconnect status
+- Current timestamps
+- Exec completed/failed status
+- Message IDs and conversation metadata
+
+**Always write to Mem0:**
+- User preferences and behavior patterns
+- Architecture decisions
+- Project status changes
+- Lessons learned
+
+### Real-World Impact
+
+From our production deployment (1 month of unchecked growth → first Dream run):
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Mem0 entries | 1,091 | 114 (-89%) |
+| MEMORY.md lines | 139 | 83 (-40%) |
+| Active task files | 15 | 10 |
+| Noise hit rate | ~60% | <10% |
+
 ## Tuning
 
 See [`references/lcm-tuning.md`](references/lcm-tuning.md) for LCM parameter tuning, including three ready-made profiles:
@@ -157,11 +227,13 @@ See [`references/lcm-tuning.md`](references/lcm-tuning.md) for LCM parameter tun
 ```
 memory-orchestrator/
 ├── SKILL.md                        # main skill (agent reads this)
-└── references/
-    ├── architecture.md             # full five-layer design
-    ├── lcm-tuning.md              # LCM parameters & profiles
-    ├── cron-templates.md          # ready-to-use cron jobs
-    └── cross-platform.md          # multi-platform continuity
+├── references/
+│   ├── architecture.md             # full five-layer design
+│   ├── lcm-tuning.md              # LCM parameters & profiles
+│   ├── cron-templates.md          # ready-to-use cron + dream jobs
+│   ├── cross-platform.md          # multi-platform continuity
+│   └── dream-consolidation.md     # dream cycle deep-dive
+└── scripts/                        # (reserved for future automation)
 ```
 
 ## Requirements
