@@ -95,13 +95,52 @@ your-workspace/
         └── another-task.md
 ```
 
-### 4. Set up cron jobs (recommended)
+### 4. Set up cron jobs
 
-See [`references/cron-templates.md`](references/cron-templates.md) for ready-to-use templates:
+Two cron jobs keep the memory layers in sync. Without them, daily logs and MEMORY.md won't auto-update.
 
-- **Daily Memory Sync** (23:00) — scans sessions, writes daily log, backfills task files
-- **Weekly Compound** (Sunday 22:00) — distills weekly logs into MEMORY.md
-- **Brain Index** (07:30) — refreshes full-text search index
+**Daily Memory Sync** (every night 23:00) — scans all sessions, writes `memory/YYYY-MM-DD.md`, backfills missing task files:
+
+```bash
+openclaw cron add \
+  --name "Daily Memory Sync" \
+  --cron "0 23 * * *" \
+  --tz "Asia/Singapore" \
+  --session isolated \
+  --model "google/gemini-3-flash-preview" \
+  --timeout-seconds 300 \
+  --no-deliver \
+  --message 'Daily memory sync. 1) Use sessions_list to find today\'s active sessions. 2) For each session with substance, summarize key topics and outcomes. 3) Write/append to memory/YYYY-MM-DD.md. 4) Check if any work topics lack a task file in memory/tasks/ — if so, create a lightweight one. 5) Do NOT overwrite existing content.'
+```
+
+**Weekly Memory Compound** (Sunday 22:00) — distills the week's daily logs into MEMORY.md:
+
+```bash
+openclaw cron add \
+  --name "Weekly Memory Compound" \
+  --cron "0 22 * * 0" \
+  --tz "Asia/Singapore" \
+  --session isolated \
+  --timeout-seconds 300 \
+  --no-deliver \
+  --message 'Weekly memory compound. 1) Read memory/YYYY-MM-DD.md for the past 7 days. 2) Read current MEMORY.md. 3) Identify significant events, decisions, lessons, and project status changes. 4) Append a new weekly summary section to MEMORY.md. 5) Remove outdated entries if appropriate. 6) Do NOT overwrite the entire file.'
+```
+
+**Optional: Brain Index** (07:30) — refreshes QMD full-text search index:
+
+```bash
+openclaw cron add \
+  --name "Brain Index Update" \
+  --cron "30 7 * * *" \
+  --tz "Asia/Singapore" \
+  --session isolated \
+  --model "google/gemini-3-flash-preview" \
+  --timeout-seconds 120 \
+  --no-deliver \
+  --message 'Update the QMD brain index. Run: exec qmd update. Report any errors.'
+```
+
+> Adjust `--tz` to your timezone. See [`references/cron-templates.md`](references/cron-templates.md) for JSON format templates.
 
 ## How It Works
 
