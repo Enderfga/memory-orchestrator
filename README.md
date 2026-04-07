@@ -157,19 +157,17 @@ See [`references/cross-platform.md`](references/cross-platform.md) for details.
 
 ## Dream Consolidation
 
-### OpenClaw Native Dreaming (2026.4.5+) — Recommended
+As of OpenClaw 2026.4.5, the platform ships with **built-in dreaming** — no cron jobs needed.
 
-As of OpenClaw 2026.4.5, the platform ships with a **built-in dreaming system** under `memory-core`. It runs three cooperative phases (light, deep, REM) with independent schedules, weighted short-term recall promotion, configurable aging controls, and a Dream Diary UI.
-
-**What native dreaming does:**
+Native dreaming runs three phases (light / deep / REM) automatically:
 - Promotes high-value short-term memories to long-term storage
 - Applies recall decay (`recencyHalfLifeDays`, `maxAgeDays`)
 - Chunks nearby daily-note lines for better evidence quality
-- Writes output to `dreams.md` (human-readable) and `memory/.dreams/` (machine state)
-- Replay-safe: reruns reconcile instead of duplicating entries
+- Writes narrative output to `dreams.md` + machine state to `memory/.dreams/`
+- Replay-safe: reruns reconcile instead of duplicating
 - `/dreaming` command for on-demand runs + Dreams UI panel
 
-**Setup:**
+**Enable it:**
 
 ```jsonc
 {
@@ -180,7 +178,7 @@ As of OpenClaw 2026.4.5, the platform ships with a **built-in dreaming system** 
         "config": {
           "dreaming": {
             "enabled": true,
-            "frequency": "0 4 * * *"  // daily at 04:00 (cron expr)
+            "frequency": "0 4 * * *"  // cron expr, default "0 3 * * *"
           }
         }
       }
@@ -189,70 +187,11 @@ As of OpenClaw 2026.4.5, the platform ships with a **built-in dreaming system** 
 }
 ```
 
-Only two config fields: `enabled` (boolean) and `frequency` (cron expression, default `0 3 * * *`). Phases and thresholds are internal — not user-facing.
-
-### Custom Dream Cron (v6) — For Advanced Users
-
-If you need more control than native dreaming provides (e.g., explicit Mem0 pruning, task file archival, MEMORY.md line-count enforcement), you can run a custom Dream cron alongside or instead of native dreaming.
-
-Without periodic maintenance, memory systems degrade fast:
-- **Mem0** fills with noise (gateway status logs, timestamps, exec results) → recall quality tanks
-- **MEMORY.md** accumulates stale entries → bloated context every session
-- **Task files** pile up after completion → dead weight
-
-The custom Dream cycle runs weekly via cron and performs six automated steps:
-
-```
-┌─────────────────────────────────────────────────┐
-│              Weekly Dream Cycle                  │
-│                                                  │
-│  1. Orientation    → Read MEMORY.md state        │
-│  2. Gather Signal  → Scan week's daily logs      │
-│  3. Consolidation  → Update, prune, compress     │
-│  4. Mem0 Pruning   → Delete noise memories       │
-│  5. Task Review    → Archive completed tasks     │
-│  6. Index          → Keep MEMORY.md < 120 lines  │
-└─────────────────────────────────────────────────┘
-```
-
-### Custom Dream Setup
-
-```bash
-# Add the Dream cron job (runs Sunday 04:00)
-openclaw cron add \
-  --name "Memory Dream (Weekly Consolidation)" \
-  --cron "0 4 * * 0" \
-  --tz "Asia/Singapore" \
-  --session isolated \
-  --model "anthropic/claude-haiku-4-5" \
-  --timeout-seconds 300 \
-  --no-deliver \
-  --message 'Execute weekly memory dream consolidation. Steps:
-1. ORIENTATION: Read MEMORY.md, count lines
-2. GATHER SIGNAL: Read last 7 days of daily logs. Search Mem0 for recent memories
-3. CONSOLIDATION: Update status, remove completed items, convert relative dates to YYYY-MM-DD, compress old reports, keep under 120 lines
-4. MEM0 PRUNING: Search and delete noise (gateway status, timestamps, exec status) via memory_forget
-5. TASK FILES: Move completed tasks to archive/
-6. Update timestamp. Output brief summary.'
-```
-
-### Native vs Custom: When to Use Which
-
-| Feature | Native Dreaming | Custom Dream Cron |
-|---------|----------------|-------------------|
-| Memory recall promotion | ✅ Built-in weighted promotion | ❌ Not covered |
-| Recall decay/aging | ✅ Configurable half-life | ❌ Not covered |
-| Mem0 noise pruning | ❌ Not covered | ✅ Explicit search+delete |
-| MEMORY.md compression | ❌ Not covered | ✅ Line-count enforcement |
-| Task file archival | ❌ Not covered | ✅ Moves completed to archive/ |
-| Dream Diary / UI | ✅ dreams.md + UI panel | ❌ Not covered |
-| Setup complexity | Minimal (2 config fields) | Moderate (cron + prompt) |
-
-**Recommendation:** Enable native dreaming for recall promotion + decay. If you also use Mem0, keep the custom Dream cron for Mem0 pruning and MEMORY.md maintenance — they complement each other.
+That's it — two fields. Phases, thresholds, and scheduling are handled internally.
 
 ### Mem0 Noise Prevention
 
-Add write-filtering rules to your `AGENTS.md` to stop noise at the source:
+Native dreaming doesn't manage Mem0 entries. If you use Mem0, add write-filtering rules to your `AGENTS.md` to stop noise at the source:
 
 **Never write to Mem0:**
 - Gateway connect/disconnect status
@@ -266,16 +205,7 @@ Add write-filtering rules to your `AGENTS.md` to stop noise at the source:
 - Project status changes
 - Lessons learned
 
-### Real-World Impact
-
-From our production deployment (1 month of unchecked growth → first Dream run):
-
-| Metric | Before | After |
-|--------|--------|-------|
-| Mem0 entries | 1,091 | 114 (-89%) |
-| MEMORY.md lines | 139 | 83 (-40%) |
-| Active task files | 15 | 10 |
-| Noise hit rate | ~60% | <10% |
+> **Advanced:** If you need automated Mem0 pruning, MEMORY.md compression, or task file archival beyond what native dreaming provides, see [`references/dream-consolidation.md`](references/dream-consolidation.md) for a custom cron-based approach.
 
 ## Tuning
 
