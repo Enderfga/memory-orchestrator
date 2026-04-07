@@ -4,7 +4,7 @@
 
 When using multiple chat surfaces (WhatsApp, webchat, Discord, etc.), work done on one platform is invisible to conversations on another. User says "continue the leaderboard work" on WhatsApp, but that work happened in a webchat session.
 
-## Solution: Three-Layer Bridge
+## Solution: Two-Layer Bridge
 
 ### 1. Task Files (manual, highest quality)
 
@@ -24,12 +24,6 @@ Best for: substantial work sessions. User explicitly triggers the snapshot.
 The 23:00 cron job scans ALL sessions (including webchat) and writes daily logs. Even if the user forgot to "write task", the Daily Sync catches it.
 
 Key technique for webchat: scan orphaned `.jsonl` session files that may not be indexed in `sessions.json` due to idle resets.
-
-### 3. Mem0 (automatic, fragment quality)
-
-Mem0 autoCapture runs on every turn across all platforms. Semantic fragments are available everywhere via autoRecall.
-
-Best for: facts, preferences, small decisions. Not for detailed work context.
 
 ## Webchat Session Preservation
 
@@ -55,7 +49,7 @@ This gives webchat sessions 7 days before reset, matching how users actually wor
 
 | Platform | Best For | Memory Strategy |
 |----------|----------|-----------------|
-| WhatsApp/Signal | Quick questions, mobile, always-on | Rely on Mem0 + task files for context |
+| WhatsApp/Signal | Quick questions, mobile, always-on | Rely on task files + daily logs for context |
 | Webchat | Deep work, long sessions | Native long context + LCM for compression |
 | Discord | Group collaboration, threads | Thread-bound sessions, mention-triggered |
 
@@ -64,4 +58,3 @@ This gives webchat sessions 7 days before reset, matching how users actually wor
 1. Set webchat idle reset to 7+ days
 2. Encourage "write task" habit after deep work sessions
 3. Configure Daily Sync to scan orphaned session files
-4. Use Mem0 as the universal semantic bridge
