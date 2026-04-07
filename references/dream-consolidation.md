@@ -1,5 +1,47 @@
 # Dream Consolidation — Deep Dive
 
+## OpenClaw Native Dreaming (2026.4.5+)
+
+As of OpenClaw 2026.4.5, the platform ships with a built-in dreaming system under `memory-core`. It runs three cooperative phases (light, deep, REM) and handles:
+
+- **Recall promotion**: Weighted short-term memory → long-term promotion
+- **Aging/decay**: Configurable `recencyHalfLifeDays` and `maxAgeDays`
+- **Daily-note chunking**: Groups nearby lines for better evidence quality
+- **Output**: `dreams.md` (human-readable narrative) + `memory/.dreams/` (machine state)
+- **Replay-safe**: Reruns reconcile instead of duplicating `MEMORY.md` entries
+- **UI**: `/dreaming` command + Dream Diary panel
+
+**Config** (only two fields):
+```json
+{
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "enabled": true,
+        "config": {
+          "dreaming": {
+            "enabled": true,
+            "frequency": "0 4 * * *"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+**What native dreaming does NOT do:**
+- Mem0 noise pruning (search + delete junk entries)
+- MEMORY.md line-count enforcement / compression
+- Task file archival
+- Absolute date conversion in memory files
+
+For these, use the custom Dream cron below. Native dreaming and custom Dream complement each other.
+
+---
+
+## Custom Dream Cron (v6)
+
 ## The Problem
 
 Memory systems without periodic maintenance follow a predictable decay curve:
@@ -14,9 +56,9 @@ In our production deployment, unchecked growth over ~5 weeks produced:
 - 15 active task files (4 already done)
 - 42 daily logs (14 from 2+ months ago, never referenced)
 
-## The Solution: Dream Cycle
+## The Solution: Custom Dream Cycle
 
-Inspired by [Claude Code's Auto Dream](https://docs.anthropic.com/), the Dream cycle is a periodic self-maintenance routine that keeps memory healthy.
+The custom Dream cycle is a periodic self-maintenance routine that keeps memory healthy. It complements native dreaming by covering areas it doesn't touch (Mem0 pruning, MEMORY.md compression, task archival).
 
 ### Six Steps
 

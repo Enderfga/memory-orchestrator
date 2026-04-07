@@ -171,7 +171,32 @@ For setups with multiple chat surfaces (e.g., WhatsApp + webchat):
 
 See `references/cross-platform.md` for the full WhatsApp + webchat cooperation model.
 
-## Dream Consolidation (v6)
+## Dream Consolidation
+
+### OpenClaw Native Dreaming (2026.4.5+)
+
+OpenClaw now ships with built-in dreaming under `memory-core`. Enable it with:
+
+```json
+{
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "enabled": true,
+        "config": {
+          "dreaming": { "enabled": true, "frequency": "0 4 * * *" }
+        }
+      }
+    }
+  }
+}
+```
+
+Native dreaming handles: recall promotion (weighted short-term → long-term), decay aging, daily-note chunking, dreams.md output, and `/dreaming` command. It does NOT handle Mem0 pruning or MEMORY.md compression.
+
+### Custom Dream Cron (v6) — Complements Native
+
+For Mem0 noise cleanup, MEMORY.md line-count enforcement, and task file archival, the custom Dream cron is still valuable:
 
 Without periodic maintenance, memory systems degrade:
 - Mem0 fills with noise (gateway status, timestamps, exec logs) → recall quality drops
@@ -179,9 +204,9 @@ Without periodic maintenance, memory systems degrade:
 - Task files pile up after completion → wastes scanning time
 - Daily logs from months ago never get reviewed → dead weight
 
-### How Dream Works
+### How Custom Dream Works
 
-Inspired by Claude Code's Auto Dream, the Dream cycle runs weekly (or on-demand) with six steps:
+The Dream cycle runs weekly (or on-demand) with six steps:
 
 1. **Orientation** — Read MEMORY.md, assess current state
 2. **Gather Signal** — Scan recent daily logs + Mem0 for high-value memories

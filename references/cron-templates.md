@@ -72,6 +72,8 @@ Refreshes QMD full-text search index over workspace files.
 
 ## Memory Dream — Weekly Consolidation (Sunday 04:00)
 
+> **Note (2026.4.5+):** If you've enabled native dreaming (`memory-core.config.dreaming.enabled: true`), this cron is optional but still recommended for Mem0 pruning and MEMORY.md compression, which native dreaming does not cover.
+
 Automated six-step memory maintenance: prunes Mem0 noise, compresses MEMORY.md, archives completed tasks.
 
 ```json

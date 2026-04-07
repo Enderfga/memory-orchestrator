@@ -63,6 +63,15 @@ Add to your `openclaw.json` (via `openclaw configure` or manual edit):
           "autoCapture": true,
           "topK": 5
         }
+      },
+      "memory-core": {
+        "enabled": true,
+        "config": {
+          "dreaming": {
+            "enabled": true,              // native dream consolidation (2026.4.5+)
+            "frequency": "0 4 * * *"      // daily at 04:00
+          }
+        }
       }
     }
   },
@@ -71,6 +80,8 @@ Add to your `openclaw.json` (via `openclaw configure` or manual edit):
   }
 }
 ```
+
+> **Note on plugin slots:** If you use `openclaw-mem0` in the `memory` slot, `memory-core` still provides native dreaming independently. They don't conflict — `memory-core` handles recall promotion/decay, while `openclaw-mem0` handles cross-session semantic recall.
 
 ### 3. Set up workspace files
 
@@ -144,14 +155,52 @@ The task file workflow bridges platforms:
 
 See [`references/cross-platform.md`](references/cross-platform.md) for details.
 
-## Dream Consolidation (v6)
+## Dream Consolidation
+
+### OpenClaw Native Dreaming (2026.4.5+) — Recommended
+
+As of OpenClaw 2026.4.5, the platform ships with a **built-in dreaming system** under `memory-core`. It runs three cooperative phases (light, deep, REM) with independent schedules, weighted short-term recall promotion, configurable aging controls, and a Dream Diary UI.
+
+**What native dreaming does:**
+- Promotes high-value short-term memories to long-term storage
+- Applies recall decay (`recencyHalfLifeDays`, `maxAgeDays`)
+- Chunks nearby daily-note lines for better evidence quality
+- Writes output to `dreams.md` (human-readable) and `memory/.dreams/` (machine state)
+- Replay-safe: reruns reconcile instead of duplicating entries
+- `/dreaming` command for on-demand runs + Dreams UI panel
+
+**Setup:**
+
+```jsonc
+{
+  "plugins": {
+    "entries": {
+      "memory-core": {
+        "enabled": true,
+        "config": {
+          "dreaming": {
+            "enabled": true,
+            "frequency": "0 4 * * *"  // daily at 04:00 (cron expr)
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Only two config fields: `enabled` (boolean) and `frequency` (cron expression, default `0 3 * * *`). Phases and thresholds are internal — not user-facing.
+
+### Custom Dream Cron (v6) — For Advanced Users
+
+If you need more control than native dreaming provides (e.g., explicit Mem0 pruning, task file archival, MEMORY.md line-count enforcement), you can run a custom Dream cron alongside or instead of native dreaming.
 
 Without periodic maintenance, memory systems degrade fast:
 - **Mem0** fills with noise (gateway status logs, timestamps, exec results) → recall quality tanks
 - **MEMORY.md** accumulates stale entries → bloated context every session
 - **Task files** pile up after completion → dead weight
 
-Dream consolidation runs weekly (via cron) and performs six automated steps:
+The custom Dream cycle runs weekly via cron and performs six automated steps:
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -166,7 +215,7 @@ Dream consolidation runs weekly (via cron) and performs six automated steps:
 └─────────────────────────────────────────────────┘
 ```
 
-### Setup
+### Custom Dream Setup
 
 ```bash
 # Add the Dream cron job (runs Sunday 04:00)
@@ -186,6 +235,20 @@ openclaw cron add \
 5. TASK FILES: Move completed tasks to archive/
 6. Update timestamp. Output brief summary.'
 ```
+
+### Native vs Custom: When to Use Which
+
+| Feature | Native Dreaming | Custom Dream Cron |
+|---------|----------------|-------------------|
+| Memory recall promotion | ✅ Built-in weighted promotion | ❌ Not covered |
+| Recall decay/aging | ✅ Configurable half-life | ❌ Not covered |
+| Mem0 noise pruning | ❌ Not covered | ✅ Explicit search+delete |
+| MEMORY.md compression | ❌ Not covered | ✅ Line-count enforcement |
+| Task file archival | ❌ Not covered | ✅ Moves completed to archive/ |
+| Dream Diary / UI | ✅ dreams.md + UI panel | ❌ Not covered |
+| Setup complexity | Minimal (2 config fields) | Moderate (cron + prompt) |
+
+**Recommendation:** Enable native dreaming for recall promotion + decay. If you also use Mem0, keep the custom Dream cron for Mem0 pruning and MEMORY.md maintenance — they complement each other.
 
 ### Mem0 Noise Prevention
 
@@ -238,7 +301,7 @@ memory-orchestrator/
 
 ## Requirements
 
-- [OpenClaw](https://github.com/openclaw/openclaw) (2026.3.12+)
+- [OpenClaw](https://github.com/openclaw/openclaw) (2026.4.5+)
 - [Lossless Claw](https://github.com/Martian-Engineering/lossless-claw) plugin (`@martian-engineering/lossless-claw`)
 - [Mem0](https://mem0.ai) plugin (`@mem0/openclaw-mem0`) + API key
 - Node.js 20+
